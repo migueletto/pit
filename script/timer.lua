@@ -1,10 +1,10 @@
 timer = pit.loadlib("libtimer")
 
-n = 1
+n = 0
 
 function timer_callback()
-  pit.debug(1, pit.sprintf("timer %d", n))
+  pit.debug(1, "timer " .. n)
   n = n + 1
 end
 
-t = timer.create(timer_callback, 1000)
+timer.create(timer_callback, 1000)
