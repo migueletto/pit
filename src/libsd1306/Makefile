@@ -1,6 +1,6 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/libsd1306.so
+PROGRAM=$(LIB)/libsd1306$(SOEXT)
 
 CUSTOMFLAGS=-I$(SRC)/libdisplay -I$(SRC)/font
 

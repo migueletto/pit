@@ -1,13 +1,11 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/libdisplay$(SOEXT)
+PROGRAM=$(LIB)/libnmea$(SOEXT)
 
-CUSTOMFLAGS=-I../font
-
-OBJS=libdisplay.o
+OBJS=libnmea.o
 
 $(PROGRAM): $(OBJS)
 	$(CC) -shared -o $(PROGRAM) $(OBJS) -L$(LIB) -lpit
 
 clean:
-	rm -f $(PROGRAM) *.o
+	rm -f $(PROGRAM) $(OBJS)
