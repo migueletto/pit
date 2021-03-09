@@ -1,2 +1,2 @@
-export LD_LIBRARY_PATH=./lib
+export LD_LIBRARY_PATH=./lib:/usr/local/lib
 exec ./bin/pit -d 1 -s libscriptlua.so "$@"
