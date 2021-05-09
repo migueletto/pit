@@ -50,7 +50,7 @@ typedef void *window_t;
 typedef struct texture_t texture_t;
 
 typedef struct {
-  window_t *(*create)(int encoding, int *width, int *height, int fullscreen, int software);
+  window_t *(*create)(int encoding, int *width, int *height, int rotate, int fullscreen, int software);
 
   int (*draw)(window_t *window, uint32_t *raw, int width, int height);
 
@@ -70,7 +70,7 @@ typedef struct {
 
   int (*destroy_texture)(window_t *_window, texture_t *texture);
 
-  int (*update_texture)(window_t *_window, texture_t *texture, uint8_t *raw, int x, int y);
+  int (*update_texture)(window_t *_window, texture_t *texture, uint8_t *raw);
 
   int (*draw_texture)(window_t *_window, texture_t *texture, int x, int y);
 

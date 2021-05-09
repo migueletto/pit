@@ -5,7 +5,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-//#include "io.h"
 #include "sys.h"
 #include "filter.h"
 #include "xalloc.h"

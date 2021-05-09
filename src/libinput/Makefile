@@ -1,12 +1,8 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/libsd1306$(SOEXT)
+PROGRAM=$(LIB)/libinput$(SOEXT)
 
-CUSTOMFLAGS=-I$(SRC)/font
-
-OBJS=libsd1306.o sd1306.o
-
-all: $(PROGRAM)
+OBJS=libinput.o
 
 $(PROGRAM): $(OBJS)
 	$(CC) -shared -o $(PROGRAM) $(OBJS) -L$(LIB) -lpit

@@ -23,6 +23,8 @@ void debug_aindent(int i);
 
 void debug_indent(int incr);
 
+void debug_rawtty(int raw);
+
 void
 debug_errno_full(const char *file, const char *func, int line, const char *sys, const char *fmt,
                  ...);

@@ -4,6 +4,9 @@
 #define DISPLAY_LINE_RECT   2
 #define DISPLAY_LINE_FILLED 3
 
+#define DISPLAY_ELLIPSE_LINE   1
+#define DISPLAY_ELLIPSE_FILLED 2
+
 typedef struct {
   char *tag;
   font_t *f;
@@ -21,5 +24,6 @@ typedef struct {
   int (*draw)(void *data, int x, int y, image_provider_t *image, image_t *img);
   int (*drawf)(void *data, int x, int y, int encoding, int width, int height, unsigned char *frame);
   int (*line)(void *data, int x1, int y1, int x2, int y2, uint32_t fg, int style);
+  int (*ellipse)(void *data, int x, int y, int rx, int ry, uint32_t fg, int style);
   uint32_t (*rgb)(void *data, int red, int green, int blue);
 } libdisplay_t;

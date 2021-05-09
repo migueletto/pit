@@ -16,7 +16,7 @@ typedef struct {
 } point_t;
 
 typedef struct {
-  image_t *(*load)(char *filename);
+  image_t *(*load)(char *filename, int depth);
 
   image_t *(*create)(int width, int height, int depth);
 

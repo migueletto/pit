@@ -13,6 +13,7 @@
 #include "font10x16.h"
 #include "font12x16coco.h"
 #include "font16x16.h"
+#include "font8x8zx81.h"
 
 #include "script.h"
 #include "pwindow.h"
@@ -129,7 +130,8 @@ static int libdisplay_backlight(int pe) {
 static int libdisplay_print(int pe) {
   script_int_t ptr, x, y;
   libdisplay_t *display;
-  char c, *s = NULL;
+  char *s = NULL;
+  uint8_t c;
   int r, i;
 
   r = -1;
@@ -225,6 +227,36 @@ static int libdisplay_rect(int pe) {
 
 static int libdisplay_box(int pe) {
   return libdisplay_line_style(pe, DISPLAY_LINE_FILLED);
+}
+
+static int libdisplay_circle_style(int pe, int style) {
+  libdisplay_t *display;
+  script_int_t ptr, x, y, rx, ry;
+  int r = -1;
+
+  if (script_get_integer(pe, 0, &ptr) == 0 &&
+      script_get_integer(pe, 1, &x) == 0 &&
+      script_get_integer(pe, 2, &y) == 0 &&
+      script_get_integer(pe, 3, &rx) == 0 &&
+      script_get_integer(pe, 4, &ry) == 0) {
+
+    if ((display = ptr_lock(ptr, TAG_DISPLAY)) != NULL) {
+      if (display->ellipse == NULL || display->ellipse(display->data, x, y, rx, ry, display->fg, style) != -1) {
+        r = script_push_boolean(pe, 1);
+      }
+      ptr_unlock(ptr, TAG_DISPLAY);
+    }
+  }
+
+  return r;
+}
+
+static int libdisplay_circle(int pe) {
+  return libdisplay_circle_style(pe, DISPLAY_ELLIPSE_LINE);
+}
+
+static int libdisplay_disc(int pe) {
+  return libdisplay_circle_style(pe, DISPLAY_ELLIPSE_FILLED);
 }
 
 static int libdisplay_draw(int pe) {
@@ -392,6 +424,9 @@ static int libdisplay_font(int pe) {
           case 6:
             display->f = &font16x16;
             break;
+          case 7:
+            display->f = &font8x8zx81;
+            break;
           default:
             r = -1;
         }
@@ -518,6 +553,8 @@ int libdisplay_init(int pe, script_ref_t obj) {
   script_add_function(pe, obj, "line",      libdisplay_line);
   script_add_function(pe, obj, "rect",      libdisplay_rect);
   script_add_function(pe, obj, "box",       libdisplay_box);
+  script_add_function(pe, obj, "circle",    libdisplay_circle);
+  script_add_function(pe, obj, "disc",      libdisplay_disc);
   script_add_function(pe, obj, "width",     libdisplay_width);
   script_add_function(pe, obj, "height",    libdisplay_height);
   script_add_function(pe, obj, "rgb",       libdisplay_rgb);

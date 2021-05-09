@@ -68,7 +68,7 @@ int sim_read(int fd, uint8_t *b, int n) {
     return -1;
   }
 
-  for (;;) {
+  for (; !thread_must_end();) {
     r = sys_read_timeout(fd, b, 1, &nread, 1000);
     if (r == -1) return -1;
     if (r == 0) continue;

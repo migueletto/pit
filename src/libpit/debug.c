@@ -28,6 +28,7 @@ static debug_sys_t sys_level[MAX_SYS];
 static int nlevels = 0;
 static int show_scope = 0;
 static int indent = 0;
+static int raw = 0;
 
 static char level_name[] = { 'E', 'I', 'T' };
 
@@ -58,6 +59,10 @@ void debug_aindent(int i) {
 
 void debug_indent(int incr) {
   indent += incr;
+}
+
+void debug_rawtty(int _raw) {
+  raw = _raw;
 }
 
 void debug_setsyslevel(char *sys, int _level) {
@@ -213,6 +218,7 @@ void debugva_full(const char *file, const char *func, int line, int _level, cons
       s += dec(line, 4, s, tmp + MAX_BUF - s);
       s += ch(']', s, tmp + MAX_BUF - s);
     }
+    if (raw) s += ch('\r', s, tmp + MAX_BUF - s);
     s += ch('\n', s, tmp + MAX_BUF - s);
     *s = 0;
 

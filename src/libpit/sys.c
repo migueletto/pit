@@ -202,7 +202,9 @@ static void fd_destructor(void *p) {
         closesocket(f->socket);
         break;
     }
+debug(1, "XXX", "destructor xfree ...");
     xfree(f);
+debug(1, "XXX", "destructor xfree done");
   }
 }
 
@@ -259,7 +261,7 @@ static int fd_read_timeout(fd_t *f, unsigned char *buf, int n, int *nread, uint3
   // if not waiting for data to arrive
   if (!f->waiting) {
     // try to read
-    // XXX: if using ovrl in ReadFile, file pointer does not advance!
+    // XXX: se tiver ovrl no ReadFile, o ponteiro do arquivo nao avanca!
     if (ReadFile(f->handle, f->buf, n, &nbread, f->type == FD_FILE ? NULL : &f->ovlr)) {
       // data was read, return immediatelly
       xmemcpy(buf, f->buf, nbread);
@@ -772,7 +774,7 @@ int sys_select(int fd, uint32_t us) {
       if (PeekNamedPipe(f->handle, NULL, 0, NULL, &available, NULL)) {
         r = available > 0 ? 1 : 0;
         if (r == 0 && us > 0) {
-          usleep(us);
+          usleep(us); // XXX dorme sempre o tempo total
           if (PeekNamedPipe(f->handle, NULL, 0, NULL, &available, NULL)) {
             r = available > 0 ? 1 : 0;
           } else {
@@ -786,6 +788,7 @@ int sys_select(int fd, uint32_t us) {
       break;
 
     case FD_SERIAL:
+      // XXX
       debug(DEBUG_ERROR, "SYS", "select on serial not implemented");
       break;
 
@@ -888,6 +891,7 @@ int sys_read_timeout(int fd, uint8_t *buf, int len, int *nread, uint32_t us) {
 
   if ((r = read(fd, buf, len)) < 0) {
     debug_errno("SYS", "read");
+debug(1, "XXX", "read(%d, %p, %d)", fd, buf, len);
     return r;
   }
 
@@ -1060,7 +1064,7 @@ int sys_peek(int fd) {
   }
 
 #ifndef WINDOWS
-  // XXX is this correct ?
+  // XXX como fazer isso no Windows ?
   char buf;
   if ((r = recv(fd, &buf, 1, MSG_PEEK)) < 0) {
     debug_errno("SYS", "recv");

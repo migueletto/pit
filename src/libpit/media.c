@@ -336,7 +336,7 @@ int media_loop(int ptr, media_frame_t *frame, void *_wp, void *_ap) {
           if (!node->w && node->wp) {
             width = frame->meta.av.v.width;
             height = frame->meta.av.v.height;
-            node->w = node->wp->create(frame->meta.av.v.encoding, &width, &height, 0, 0);
+            node->w = node->wp->create(frame->meta.av.v.encoding, &width, &height, 0, 0, 0);
           }
           if (node->w) {
             node->wp->draw(node->w, (uint32_t *)frame->frame, frame->meta.av.v.width, frame->meta.av.v.height);
