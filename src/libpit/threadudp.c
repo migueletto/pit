@@ -126,7 +126,9 @@ void thread_setmain(void) {
 }
 
 void thread_close(void) {
-  sys_close(main_targ.sock);
+  if (main_targ.sock > 0) {
+    sys_close(main_targ.sock);
+  }
   mutex_destroy(flags_mutex);
   mutex_destroy(mutex);
 }

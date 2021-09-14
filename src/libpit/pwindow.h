@@ -50,29 +50,25 @@ typedef void *window_t;
 typedef struct texture_t texture_t;
 
 typedef struct {
-  window_t *(*create)(int encoding, int *width, int *height, int rotate, int fullscreen, int software);
-
-  int (*draw)(window_t *window, uint32_t *raw, int width, int height);
+  window_t *(*create)(int encoding, int *width, int *height, int xfactor, int yfactor, int rotate, int fullscreen, int software);
 
   int (*event)(window_t *window, int wait, int remove, int *key, int *mods, int *buttons);
 
   int (*destroy)(window_t *window);
 
-  int (*draw2)(window_t *window, uint32_t *raw, int x, int y, int width, int height, int pitch);
-
   int (*erase)(window_t *window, uint32_t bg);
 
-  int (*render)(window_t *_window);
+  int (*render)(window_t *window);
 
   int (*background)(window_t *window, uint32_t *raw, int width, int height);
 
   texture_t *(*create_texture)(window_t *window, int width, int height);
 
-  int (*destroy_texture)(window_t *_window, texture_t *texture);
+  int (*destroy_texture)(window_t *window, texture_t *texture);
 
-  int (*update_texture)(window_t *_window, texture_t *texture, uint8_t *raw);
+  int (*update_texture)(window_t *window, texture_t *texture, uint8_t *raw);
 
-  int (*draw_texture)(window_t *_window, texture_t *texture, int x, int y);
+  int (*draw_texture)(window_t *window, texture_t *texture, int x, int y);
 
   void (*status)(window_t *window, int *x, int *y, int *buttons);
 
@@ -87,6 +83,14 @@ typedef struct {
   int (*mixer_play)(uint8_t *buf, uint32_t len, int volume);
 
   int (*mixer_stop)(void);
+
+  int (*update)(window_t *window, int x, int y, int width, int height);
+
+  int (*draw_texture_rect)(window_t *window, texture_t *texture, int tx, int ty, int w, int h, int x, int y);
+
+  int (*update_texture_rect)(window_t *_window, texture_t *texture, uint8_t *src, int tx, int ty, int w, int h);
+
+  int (*move)(window_t *window, int x, int y, int w, int h, int dx, int dy);
 
 } window_provider_t;
 

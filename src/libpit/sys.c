@@ -12,7 +12,7 @@
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>
 #include <windows.h>
-//#include <direct.h>
+#include <direct.h>
 #include <winnls.h>
 #include <dbghelp.h>
 #define _WINSOCK2API_
@@ -202,9 +202,7 @@ static void fd_destructor(void *p) {
         closesocket(f->socket);
         break;
     }
-debug(1, "XXX", "destructor xfree ...");
     xfree(f);
-debug(1, "XXX", "destructor xfree done");
   }
 }
 
@@ -384,11 +382,19 @@ int sys_isdst(void) {
 }
 
 time_t sys_timegm(struct tm *tm) {
+#ifdef WINDOWS
+  return _mkgmtime(tm);
+#else
   return timegm(tm);
+#endif
 }
 
 time_t sys_timelocal(struct tm *tm) {
+#ifdef WINDOWS
+  return mktime(tm);
+#else
   return timelocal(tm);
+#endif
 }
 
 int sys_gmtime(const time_t *t, struct tm *tm) {
@@ -650,7 +656,7 @@ int sys_chdir(char *path) {
   if (path) {
 #ifdef WINDOWS
     normalize_path(path, buf, FILE_PATH);
-    r = chdir(buf);
+    r = _chdir(buf);
 #else
     strncpy(buf, path, FILE_PATH);
     r = chdir(buf);
@@ -821,17 +827,46 @@ int sys_fdisset(int n, sys_fdset_t *fds) {
 }
 
 int sys_select_fds(int nfds, sys_fdset_t *readfds, sys_fdset_t *writefds, sys_fdset_t *exceptfds, struct timeval *timeout) {
-#ifdef WINDOWS
-  debug(DEBUG_ERROR, "SYS", "sys_select_fds not implemented");
-  return -1;
-#else
   fd_set rfds, wfds, efds;
-  int i;
+  int r, i, s;
+#ifdef WINDOWS
+  TIMEVAL tv;
+  fd_t *f;
+  int map[FD_SETSIZE];
+  int setsize = FD_SETSIZE;
+#else
+  struct timeval tv;
+  int setsize = 32;
+#endif
+
+  if (timeout) {
+    tv.tv_sec = timeout->tv_sec;
+    tv.tv_usec = timeout->tv_usec;
+  }
+
+#ifdef WINDOWS
+  for (i = 0; i < setsize; i++) {
+    map[i] = 0;
+  }
+  nfds = 0;
+#endif
 
   if (readfds) {
     FD_ZERO(&rfds);
     for (i = 0; i < 32; i++) {
-      if (sys_fdisset(i, readfds)) FD_SET(i, &rfds);
+      if (sys_fdisset(i, readfds)) {
+#ifdef WINDOWS
+        if (i > 0 && (f = ptr_lock(i, TAG_FD)) != NULL) {
+          if (f->type == FD_SOCKET && f->socket < setsize) {
+            FD_SET(f->socket, &rfds);
+            map[f->socket] = i;
+          }
+          ptr_unlock(i, TAG_FD);
+        }
+#else
+        FD_SET(i, &rfds);
+#endif
+      }
     }
   }
 
@@ -849,8 +884,45 @@ int sys_select_fds(int nfds, sys_fdset_t *readfds, sys_fdset_t *writefds, sys_fd
     }
   }
 
-  return select(nfds, readfds ? &rfds : NULL, writefds ? &wfds : NULL, exceptfds ? &efds : NULL, timeout);
+  r = select(nfds, readfds ? &rfds : NULL, writefds ? &wfds : NULL, exceptfds ? &efds : NULL, timeout ? &tv : NULL);
+
+  if (readfds) {
+    sys_fdzero(readfds);
+    for (i = 0; i < setsize; i++) {
+#ifdef WINDOWS
+      s = map[i];
+#else
+      s = i;
 #endif
+      if (FD_ISSET(i, &rfds)) {
+        sys_fdset(s, readfds);
+      } else {
+        sys_fdclr(s, readfds);
+      }
+    }
+  }
+
+  if (writefds) {
+    for (i = 0; i < 32; i++) {
+      if (FD_ISSET(i, &wfds)) {
+        sys_fdset(i, writefds);
+      } else {
+        sys_fdclr(i, writefds);
+      }
+    }
+  }
+
+  if (exceptfds) {
+    for (i = 0; i < 32; i++) {
+      if (FD_ISSET(i, &efds)) {
+        sys_fdset(i, exceptfds);
+      } else {
+        sys_fdclr(i, exceptfds);
+      }
+    }
+  }
+
+  return r;
 }
 
 // return -1: error
@@ -891,7 +963,6 @@ int sys_read_timeout(int fd, uint8_t *buf, int len, int *nread, uint32_t us) {
 
   if ((r = read(fd, buf, len)) < 0) {
     debug_errno("SYS", "read");
-debug(1, "XXX", "read(%d, %p, %d)", fd, buf, len);
     return r;
   }
 
@@ -1264,7 +1335,7 @@ int sys_mkdir(const char *pathname) {
 
 #ifdef WINDOWS
   normalize_path(pathname, buf, FILE_PATH);
-  r = mkdir(buf, 0755);
+  r = _mkdir(buf);
 #else
   strncpy(buf, pathname, FILE_PATH);
   r = mkdir(buf, 0755);
@@ -2349,7 +2420,8 @@ static int sys_tcpip_accept(int sock, char *host, int hlen, int *port, struct ti
   }
 
 #ifdef WINDOWS
-  __ms_u_long iMode = 1;
+  //__ms_u_long iMode = 1;
+  u_long iMode = 1;
   if (ioctlsocket(csock, FIONBIO, &iMode) != 0) {
     // XXX this ioctlsocket call is failing on Windows
     debug_errno("SYS", "ioctlsocket");
@@ -2513,6 +2585,9 @@ int sys_setsockopt(int sock, int level, int optname, const void *optval, int opt
   switch (optname) {
     case SYS_TCP_NODELAY:
       ioptname = TCP_NODELAY;
+      break;
+    case SYS_SOCK_LINGER:
+      ioptname = SO_LINGER;
       break;
     default:
       return -1;

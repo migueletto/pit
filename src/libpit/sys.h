@@ -35,6 +35,7 @@ typedef enum {
 #define SYS_SHUTDOWN_RDWR  3
 
 #define SYS_TCP_NODELAY  1
+#define SYS_SOCK_LINGER  100
 
 #define FILE_PATH    256
 
@@ -61,6 +62,11 @@ typedef struct {
   uint64_t total;  // size of filesystem in bytes
   uint64_t free;   // free bytes in filesystem
 } sys_statfs_t;
+
+typedef struct {
+  int l_onoff;
+  int l_linger;
+} sys_linger_t;
 
 typedef struct sys_dir_t sys_dir_t;
 

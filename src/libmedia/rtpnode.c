@@ -10,7 +10,7 @@
 #include "media.h"
 #include "bytes.h"
 #include "sys.h"
-#include "io.h"
+#include "pit_io.h"
 #include "rtpnode.h"
 #include "debug.h"
 #include "xalloc.h"
@@ -104,7 +104,7 @@ static void send_rtp_frame(int encoding, int width, int height, uint8_t *buf, in
 }
 
 static int recv_rtp_packet(uint8_t *packet, int n, rtp_node_t *data) {
-  debug_bytes(DEBUG_TRACE, "RTP", packet, n);
+  debug_bytes(DEBUG_INFO, "RTP", packet, n);
   return 0;
 }
 
@@ -114,7 +114,7 @@ static int recv_rtcp_packet(uint8_t *packet, int n, rtp_node_t *data) {
   uint32_t ssrc, aux;
   int i, j;
 
-  debug_bytes(DEBUG_TRACE, "RTP", packet, n);
+  debug_bytes(DEBUG_INFO, "RTP", packet, n);
 
   for (j = 0; j < n;) {
     if ((packet[j] & 0xC0) != 0x80) break;
@@ -217,7 +217,7 @@ static int send_rtcp_report(rtp_node_t *data) {
 
     debug(DEBUG_INFO, "RTP", "send %d bytes to host %s port %d", j, data->peer_host, data->peer_rtcp_port);
     sys_socket_sendto(data->rtcp_sock, data->peer_host, data->peer_rtcp_port, data->packet, j);
-    debug_bytes(DEBUG_TRACE, "RTP", data->packet, j);
+    debug_bytes(DEBUG_INFO, "RTP", data->packet, j);
   }
 
   return 0;

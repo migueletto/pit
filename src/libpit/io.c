@@ -7,7 +7,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "io.h"
+#include "pit_io.h"
 #include "sys.h"
 #include "ptr.h"
 #include "thread.h"

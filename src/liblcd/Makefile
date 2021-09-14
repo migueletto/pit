@@ -1,6 +1,6 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/liblcd$(SOEXT)
+PROGRAM=$(LIB)/liblcd.so
 
 CUSTOMFLAGS=-I$(SRC)/libdisplay -I$(SRC)/libi2c -I$(SRC)/font
 

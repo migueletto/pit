@@ -6,7 +6,7 @@
 #include <sys/time.h>
 
 #include "thread.h"
-#include "io.h"
+#include "pit_io.h"
 #include "filter.h"
 #include "login.h"
 #include "debug.h"

@@ -10,7 +10,7 @@
 typedef struct {
   char *tag;
   font_t *f;
-  int width, height;
+  int width, height, depth;
   uint32_t fg, bg;
   int fixedfont;
 

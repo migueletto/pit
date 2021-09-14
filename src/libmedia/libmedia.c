@@ -3,13 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "script.h"
 #include "thread.h"
 #include "media.h"
 #include "ptr.h"
 #include "mutex.h"
-#include "io.h"
+#include "pit_io.h"
 #include "monitor.h"
 #include "sync.h"
 #include "convert.h"

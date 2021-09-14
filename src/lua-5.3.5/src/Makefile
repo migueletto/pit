@@ -1,5 +1,4 @@
 include ../../common.mak
-PIT=../../..
 
 # Makefile for building Lua
 # See ../doc/readme.html for installation and customization instructions.

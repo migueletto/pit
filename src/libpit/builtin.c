@@ -11,7 +11,7 @@
 #include "thread.h"
 #include "sys.h"
 #include "timeutc.h"
-#include "io.h"
+#include "pit_io.h"
 #include "vfs.h"
 #include "vfslocal.h"
 #include "sim.h"

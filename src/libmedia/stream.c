@@ -9,7 +9,7 @@
 #include "thread.h"
 #include "media.h"
 #include "mime.h"
-#include "io.h"
+#include "pit_io.h"
 #include "sys.h"
 #include "stream.h"
 #include "debug.h"

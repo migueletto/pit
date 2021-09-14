@@ -30,7 +30,7 @@ typedef struct {
   uint32_t seq;
   int16_t wbuf[WBUF_LEN];
   uint32_t iwbuf, samples;
-  char filename[MAX_FILENAME+32];
+  char filename[MAX_FILENAME];
   int fd;
 } libmedia_isolate_t;
 
@@ -160,7 +160,7 @@ static int libmedia_isolate_process(media_frame_t *frame, void *_data) {
       case 1:  // looking for sound
         if (data->nsound >= data->nsilence) {
           debug(DEBUG_TRACE, "ISOLATE", "sound start");
-          snprintf(data->filename, MAX_FILENAME+32-1, "%s/%06u.raw", data->dir, data->seq++);
+          snprintf(data->filename, MAX_FILENAME-1, "%s/%06u.raw", data->dir, data->seq++);
           if ((data->fd = sys_create(data->filename, SYS_WRITE | SYS_TRUNC, 0644)) != -1) {
             for (j = data->len-1; j >= 0; j--) {
               if ((data->pos-j) > data->last_saved) {

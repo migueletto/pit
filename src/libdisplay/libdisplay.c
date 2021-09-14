@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#include "font.h"
+#include "pfont.h"
 #include "font5x8.h"
 #include "font6x8coco.h"
 #include "font6x8apple.h"

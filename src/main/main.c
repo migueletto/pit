@@ -93,8 +93,8 @@ int pit_main(int argc, char *argv[]) {
 
   sys_init();
   debug_init(debugfile);
-  thread_init();
   ptr_init();
+  thread_init();
 
   debug(DEBUG_INFO, "MAIN", "%s starting on %s (%s endian)", SYSTEM_NAME, SYSTEM_OS, little_endian() ? "little" : "big");
 

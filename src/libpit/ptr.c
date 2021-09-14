@@ -37,7 +37,7 @@ typedef struct {
 static ptr_t table[MAX_PTRS];
 static unsigned int next_id;
 static mutex_t *mutex;
-static char *op_name[] = { "", "lock", "unlock", "wait", "free" };
+static char *op_name[] = { "", "lock", "unlock", "wait", "signal", "free" };
 
 int ptr_init(void) {
   int i;

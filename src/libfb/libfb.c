@@ -500,6 +500,7 @@ static int libdisplay_create(int pe) {
               }
               display->width = fb->width;
               display->height = fb->height;
+              display->depth = fb->depth;
               display->data = fb;
               display->printchar = display_printchar;
               display->cls = display_cls;

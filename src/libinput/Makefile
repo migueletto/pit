@@ -1,6 +1,8 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/libinput$(SOEXT)
+PROGRAM=$(LIB)/libinput.so
+
+CUSTOMFLAGS=-I../font
 
 OBJS=libinput.o
 

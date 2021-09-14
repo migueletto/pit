@@ -9,7 +9,7 @@
 #include "ptr.h"
 #include "pwindow.h"
 #include "image.h"
-#include "font.h"
+#include "pfont.h"
 #include "display.h"
 #include "i2c.h"
 #include "lcdc.h"

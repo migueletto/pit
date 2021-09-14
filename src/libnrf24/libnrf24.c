@@ -6,8 +6,11 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "wrapper.h"
 #include "script.h"
+#include "gpio.h"
+#include "spi.h"
+#include "nrf24.h"
+#include "io.h"
 #include "sys.h"
 #include "thread.h"
 #include "debug.h"
@@ -31,9 +34,7 @@
 #define OP_DETAILS  8
 
 typedef struct {
-  nrf24_wrapper_t *rf;
-  int ce, csn;
-  uint8_t rate;
+  nrf24_t *rf;
   uint8_t channel;
   int pe;
   script_ref_t ref;
@@ -78,7 +79,7 @@ static int libnrf24_loop(libnrf24_t *rf) {
   uint8_t pipe;
   int r = 0;
 
-  while (nrf24_available_pipe(rf->rf, &pipe)) {
+  while (nrf24_available(rf->rf, &pipe)) {
     if (rf->payload_len) {
       debug(DEBUG_TRACE, "NRF24", "writing ack payload to pipe %d", pipe);
       nrf24_writeAckPayload(rf->rf, pipe, rf->payload, rf->payload_len);
@@ -98,139 +99,147 @@ static int libnrf24_action(void *arg) {
   
   rf = (libnrf24_t *)arg;
 
-  if ((rf->rf = nrf24_init(25, 0)) != NULL) {
-    if (nrf24_begin(rf->rf)) {
-      nrf24_setPALevel(rf->rf, NRF24_PA_LOW, 1);
-      nrf24_setDataRate(rf->rf, rf->rate);
-      nrf24_setAutoAck(rf->rf, 1);
-      nrf24_setRetries(rf->rf, 5, 15);
-      nrf24_enableDynamicPayloads(rf->rf);
-      nrf24_setCRCLength(rf->rf, NRF24_CRC_16);
-      nrf24_setChannel(rf->rf, rf->channel);
+  if (nrf24_begin(rf->rf) == 0) {
+    nrf24_setPALevel(rf->rf, RF24_PA_MIN);
+    nrf24_setDataRate(rf->rf, RF24_250KBPS);
+    nrf24_setAutoAck(rf->rf, 1);
+    nrf24_setRetries(rf->rf, 5, 15);
+    nrf24_enableDynamicPayloads(rf->rf);
+    nrf24_setCRCLength(rf->rf, RF24_CRC_16);
+    nrf24_setChannel(rf->rf, rf->channel);
 
-      for (; !thread_must_end();) {
-        if (thread_server_read((unsigned char **)&targ, &n) == -1) {
-          break;
-        }
-
-        if (targ) {
-          if (n == sizeof(libnrf24_arg_t)) {
-            switch (targ->op) {
-              case OP_RECVADDR:
-                debug(DEBUG_INFO, "NRF24", "set recv address %02X:%02X:%02X:%02X:%02X pipe %d", targ->addr[4], targ->addr[3], targ->addr[2], targ->addr[1], targ->addr[0], targ->n);
-                nrf24_openReadingPipe(rf->rf, targ->n, targ->addr);
-                break;
-
-              case OP_SENDADDR:
-                debug(DEBUG_INFO, "NRF24", "set send address %02X:%02X:%02X:%02X:%02X", targ->addr[4], targ->addr[3], targ->addr[2], targ->addr[1], targ->addr[0]);
-                nrf24_openWritingPipe(rf->rf, targ->addr);
-                break;
-
-              case OP_PAYLOAD:
-                rf->payload_len = targ->n;
-                if (targ->n) {
-                  memcpy(rf->payload, targ->buf, targ->n);
-                  if (rf->first) {
-                    debug(DEBUG_INFO, "NRF24", "enabling ack payload");
-                    nrf24_enableAckPayload(rf->rf);
-                    rf->first = 0;
-                  }
-                } else {
-                  debug(DEBUG_INFO, "NRF24", "disabling ack payload");
-                }
-                break;
-
-              case OP_WRITE:
-                debug(DEBUG_TRACE, "NRF24", "writing %d byte(s)", targ->n);
-                if (!nrf24_write(rf->rf, targ->buf, targ->n, 0)) {
-                  debug(DEBUG_ERROR, "NRF24", "write failed");
-                  script_call(rf->pe, rf->ref, &ret, "IB", mkint(NRF24_SEND), 0);
-                } else {
-                  if (!nrf24_available_pipe(rf->rf, &pipe)) {
-                    debug(DEBUG_TRACE, "NRF24", "ack without payload received");
-                    script_call(rf->pe, rf->ref, &ret, "IB", mkint(NRF24_SEND), 1);
-                  } else {
-                    debug(DEBUG_TRACE, "NRF24", "ack with payload received");
-                    libnrf24_read(rf, NRF24_SEND, pipe);
-                  }
-                }
-                break;
-
-              case OP_POWER:
-                debug(DEBUG_INFO, "NRF24", "power set to %d", targ->n);
-                nrf24_setPALevel(rf->rf, targ->n, 1);
-                break;
-
-              case OP_CHANNEL:
-                debug(DEBUG_INFO, "NRF24", "channel set to %d", targ->n);
-                rf->channel = targ->n;
-                nrf24_setChannel(rf->rf, rf->channel);
-                break;
-
-              case OP_LISTEN:
-                if (targ->n) {
-                  debug(DEBUG_TRACE, "NRF24", "listen on");
-                  nrf24_startListening(rf->rf);
-                } else {
-                  debug(DEBUG_TRACE, "NRF24", "listen off");
-                  nrf24_stopListening(rf->rf);
-                }
-                break;
-
-              case OP_DETAILS:
-                nrf24_printDetails(rf->rf);
-                break;
-            }
-          }
-          xfree(targ);
-        }
-
-        if (libnrf24_loop(rf)) break;
-        sys_usleep(100000);
+    for (; !thread_must_end();) {
+      if (thread_server_read((unsigned char **)&targ, &n) == -1) {
+        break;
       }
-      nrf24_stopListening(rf->rf);
-      nrf24_powerDown(rf->rf);
 
-    } else {
-      debug(DEBUG_ERROR, "NRF24", "nrf24_begin failed");
+      if (targ) {
+        if (n == sizeof(libnrf24_arg_t)) {
+          switch (targ->op) {
+            case OP_RECVADDR:
+              debug(DEBUG_INFO, "NRF24", "set recv address %02X:%02X:%02X:%02X:%02X pipe %d", targ->addr[4], targ->addr[3], targ->addr[2], targ->addr[1], targ->addr[0], targ->n);
+              nrf24_openReadingPipe(rf->rf, targ->n, targ->addr);
+              break;
+
+            case OP_SENDADDR:
+              debug(DEBUG_INFO, "NRF24", "set send address %02X:%02X:%02X:%02X:%02X", targ->addr[4], targ->addr[3], targ->addr[2], targ->addr[1], targ->addr[0]);
+              nrf24_openWritingPipe(rf->rf, targ->addr);
+              break;
+
+            case OP_PAYLOAD:
+              rf->payload_len = targ->n;
+              if (targ->n) {
+                memcpy(rf->payload, targ->buf, targ->n);
+                if (rf->first) {
+                  debug(DEBUG_INFO, "NRF24", "enabling ack payload");
+                  nrf24_enableAckPayload(rf->rf);
+                  rf->first = 0;
+                }
+              } else {
+                debug(DEBUG_INFO, "NRF24", "disabling ack payload");
+              }
+              break;
+
+            case OP_WRITE:
+              debug(DEBUG_TRACE, "NRF24", "writing %d byte(s)", targ->n);
+              if (!nrf24_write(rf->rf, targ->buf, targ->n, 0)) {
+                debug(DEBUG_ERROR, "NRF24", "write failed");
+                script_call(rf->pe, rf->ref, &ret, "IB", mkint(NRF24_SEND), 0);
+              } else {
+                if (!nrf24_available(rf->rf, &pipe)) {
+                  debug(DEBUG_INFO, "NRF24", "ack without payload received");
+                  script_call(rf->pe, rf->ref, &ret, "IB", mkint(NRF24_SEND), 1);
+                } else {
+                  debug(DEBUG_INFO, "NRF24", "ack with payload received");
+                  libnrf24_read(rf, NRF24_SEND, pipe);
+                }
+              }
+              break;
+
+            case OP_POWER:
+              debug(DEBUG_INFO, "NRF24", "power set to %d", targ->n);
+              nrf24_setPALevel(rf->rf, targ->n);
+              break;
+
+            case OP_CHANNEL:
+              debug(DEBUG_INFO, "NRF24", "channel set to %d", targ->n);
+              rf->channel = targ->n;
+              nrf24_setChannel(rf->rf, rf->channel);
+              break;
+
+            case OP_LISTEN:
+              if (targ->n) {
+                debug(DEBUG_INFO, "NRF24", "listen on");
+                nrf24_startListening(rf->rf);
+              } else {
+                debug(DEBUG_INFO, "NRF24", "listen off");
+                nrf24_stopListening(rf->rf);
+              }
+              break;
+
+            case OP_DETAILS:
+              nrf24_printDetails(rf->rf);
+              break;
+          }
+        }
+        xfree(targ);
+      }
+
+      if (libnrf24_loop(rf)) break;
+      sys_usleep(100000);
     }
-    nrf24_deinit(rf->rf);
-
-  } else {
-    debug(DEBUG_ERROR, "NRF24", "init failed");
   }
 
   script_call(rf->pe, rf->ref, &ret, "I", mkint(NRF24_EXIT));
   script_remove_ref(rf->pe, rf->ref);
+  nrf24_stopListening(rf->rf);
+  nrf24_end(rf->rf);
+  nrf24_destroy(rf->rf);
   xfree(rf);
 
   return 0;
 }
 
 static int libnrf24_create(int pe) {
+  gpio_provider_t *gpio;
+  spi_provider_t *spi;
   libnrf24_t *rf;
-  script_int_t ce, csn, rate, channel, handle;
+  script_int_t ce_pin, csn_pin, speed, channel, handle;
   script_ref_t ref;
   int r = -1;
 
+  if ((gpio = script_get_pointer(pe, GPIO_PROVIDER)) == NULL) {
+    debug(DEBUG_ERROR, "NRF24", "gpio provider not found");
+  }
+
+  if ((spi = script_get_pointer(pe, SPI_PROVIDER)) == NULL) {
+    debug(DEBUG_ERROR, "NRF24", "spi provider not found");
+  }
+
+  if (gpio == NULL || spi == NULL) {
+    return -1;
+  }
+
   if (script_get_function(pe, 0, &ref) == 0 &&
-      script_get_integer(pe, 1, &ce) == 0 &&
-      script_get_integer(pe, 2, &csn) == 0 &&
-      script_get_integer(pe, 3, &rate) == 0 &&
+      script_get_integer(pe, 1, &ce_pin) == 0 &&
+      script_get_integer(pe, 2, &csn_pin) == 0 &&
+      script_get_integer(pe, 3, &speed) == 0 &&
       script_get_integer(pe, 4, &channel) == 0) {
 
     if (channel >= 0 && channel < 125) {
       if ((rf = xcalloc(1, sizeof(libnrf24_t))) != NULL) {
-        rf->ce = ce;
-        rf->csn = csn;
-        rf->pe = pe;
-        rf->ref = ref;
-        rf->rate = rate;
-        rf->channel = channel;
-        rf->first = 1;
+        if ((rf->rf = nrf24_create(gpio, spi, ce_pin, csn_pin, speed)) != NULL) {
+          rf->pe = pe;
+          rf->ref = ref;
+          rf->channel = channel;
+          rf->first = 1;
 
-        if ((handle = thread_begin(TAG_NRF24, libnrf24_action, rf)) != -1) {
-          r = script_push_integer(pe, handle);
+          if ((handle = thread_begin(TAG_NRF24, libnrf24_action, rf)) != -1) {
+            r = script_push_integer(pe, handle);
+          } else {
+            nrf24_destroy(rf->rf);
+            xfree(rf);
+          }
         } else {
           xfree(rf);
         }
@@ -352,10 +361,10 @@ static int libnrf24_power(int pe) {
       script_get_integer(pe, 1, &power) == 0) {
 
     switch (power) {
-      case NRF24_PA_MIN:
-      case NRF24_PA_LOW:
-      case NRF24_PA_HIGH:
-      case NRF24_PA_MAX:
+      case RF24_PA_MIN:
+      case RF24_PA_LOW:
+      case RF24_PA_HIGH:
+      case RF24_PA_MAX:
         targ.op = OP_POWER;
         targ.n = power;
         len = sizeof(libnrf24_arg_t);
@@ -444,14 +453,10 @@ int libnrf24_init(int pe, script_ref_t obj) {
   script_add_iconst(pe, obj, "RECV", NRF24_RECV);
   script_add_iconst(pe, obj, "EXIT", NRF24_EXIT);
 
-  script_add_iconst(pe, obj, "POWER_MIN",  NRF24_PA_MIN);
-  script_add_iconst(pe, obj, "POWER_LOW",  NRF24_PA_LOW);
-  script_add_iconst(pe, obj, "POWER_HIGH", NRF24_PA_HIGH);
-  script_add_iconst(pe, obj, "POWER_MAX",  NRF24_PA_MAX);
-
-  script_add_iconst(pe, obj, "RATE_1MBPS",    NRF24_1MBPS);
-  script_add_iconst(pe, obj, "RATE_2MBPS",    NRF24_2MBPS);
-  script_add_iconst(pe, obj, "RATE_250KBPS",  NRF24_250KBPS);
+  script_add_iconst(pe, obj, "POWER_MIN",  RF24_PA_MIN);
+  script_add_iconst(pe, obj, "POWER_LOW",  RF24_PA_LOW);
+  script_add_iconst(pe, obj, "POWER_HIGH", RF24_PA_HIGH);
+  script_add_iconst(pe, obj, "POWER_MAX",  RF24_PA_MAX);
 
   return 0;
 }

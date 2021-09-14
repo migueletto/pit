@@ -32,6 +32,7 @@ typedef struct {
   int64_t ts;
   window_provider_t *wp;
   window_t *w;
+  texture_t *t;
   audio_provider_t *ap;
   audio_t *a;
   int show;
@@ -119,12 +120,9 @@ static void node_destroy_callback(void *p) {
   if (p) {
     node = (media_node_t *)p;
     if (node->dispatch.destroy) node->dispatch.destroy(node->data);
-    if (node->w) {
-      node->wp->destroy(node->w);
-    }
-    if (node->a) {
-      node->ap->destroy(node->a);
-    }
+    if (node->w && node->t) node->wp->destroy_texture(node->w, node->t);
+    if (node->w) node->wp->destroy(node->w);
+    if (node->a) node->ap->destroy(node->a);
     debug(DEBUG_INFO, "MEDIA", "destroyed node %s", node->name);
     xfree(node);
   }
@@ -336,16 +334,19 @@ int media_loop(int ptr, media_frame_t *frame, void *_wp, void *_ap) {
           if (!node->w && node->wp) {
             width = frame->meta.av.v.width;
             height = frame->meta.av.v.height;
-            node->w = node->wp->create(frame->meta.av.v.encoding, &width, &height, 0, 0, 0);
+            node->w = node->wp->create(frame->meta.av.v.encoding, &width, &height, 1, 1, 0, 0, 0);
+            node->t = node->w ? node->wp->create_texture(node->w, width, height) : NULL;
           }
-          if (node->w) {
-            node->wp->draw(node->w, (uint32_t *)frame->frame, frame->meta.av.v.width, frame->meta.av.v.height);
+          if (node->t) {
+            node->wp->update_texture(node->w, node->t, frame->frame);
+            node->wp->draw_texture(node->w, node->t, 0, 0);
             node->wp->render(node->w);
             node->wp->event(node->w, 0, 1, &ekey, &mods, &ebuttons);
           }
         } else {
           if (node->w) {
-            node->wp->destroy(node->w);
+            if (node->t) node->wp->destroy_texture(node->w, node->t);
+            if (node->w) node->wp->destroy(node->w);
             node->w = NULL;
           }
         }

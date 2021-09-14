@@ -1,6 +1,5 @@
-PIT=../..
+PIT=$(HOME)/work/pit
 LIB=$(PIT)/lib
-BC=$(PIT)/bc
 PRJ=$(PIT)/projects
 SRC=$(PIT)/src
 LIBPIT=$(SRC)/libpit
@@ -8,22 +7,46 @@ LIBPIT=$(SRC)/libpit
 SYSNAME=pit
 VERSION=1.0
 
+MACHINE := $(shell uname -m)
+
+ifeq ($(findstring arm,$(MACHINE)),arm)
+SYS_CPU=1
+SYS_SIZE=1
+else ifeq ($(MACHINE),x86_64)
+SYS_CPU=2
+SYS_SIZE=2
+else ifeq ($(MACHINE),x86_32)
+SYS_CPU=2
+SYS_SIZE=1
+else ifeq ($(MACHINE),i686)
+SYS_CPU=2
+SYS_SIZE=1
+else ifeq ($(MACHINE),i386)
+SYS_CPU=2
+SYS_SIZE=1
+else
+SYS_CPU=0
+SYS_SIZE=0
+endif
+
 UNAME := $(shell uname -o)
 
 ifeq ($(UNAME),GNU/Linux)
 EXTLIBS=-lrt -ldl
 SOEXT=.so
 LUAPLAT=linux
-OSDEFS=-DLINUX -DSOEXT=\"$(SOEXT)\"
 OS=Linux
-endif
-
-ifeq ($(UNAME),Msys)
+SYS_OS=1
+OSDEFS=-DLINUX -DSOEXT=\"$(SOEXT)\"
+else ifeq ($(UNAME),Msys)
 EXTLIBS=-lwsock32 -lws2_32
 SOEXT=.dll
 LUAPLAT=mingw
 OS=Windows
+SYS_OS=2
 OSDEFS=-DWINDOWS -DSOEXT=\"$(SOEXT)\"
+else
+SYS_OS=0
 endif
 
 HASBCM2835 := $(shell ls /usr/local/include/ | grep bcm2835.h)
@@ -42,4 +65,6 @@ HASVC=no
 endif
 
 CC=gcc
-CFLAGS=-Wall -g -fPIC -I$(LIBPIT) -DSYSTEM_NAME=\"$(SYSNAME)\" -DSYSTEM_VERSION=\"$(VERSION)\" -DSYSTEM_OS=\"$(OS)\" $(CUSTOMFLAGS) $(OSDEFS)
+
+SYSDEFS=-DSYS_CPU=$(SYS_CPU) -DSYS_SIZE=$(SYS_SIZE) -DSYS_OS=$(SYS_OS)
+CFLAGS=-Wall -fsigned-char -g -fPIC -I$(LIBPIT) -DSYSTEM_NAME=\"$(SYSNAME)\" -DSYSTEM_VERSION=\"$(VERSION)\" -DSYSTEM_OS=\"$(OS)\" $(CUSTOMFLAGS) $(SYSDEFS) $(OSDEFS)

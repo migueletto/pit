@@ -6,7 +6,7 @@
 #include <sys/time.h>
 
 #include "script.h"
-#include "io.h"
+#include "pit_io.h"
 #include "sock.h"
 #include "gps.h"
 #include "thread.h"

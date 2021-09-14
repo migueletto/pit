@@ -72,7 +72,6 @@ static int libinput_input_event(input_t *input, int *x, int *y, uint32_t us) {
           break;
         default:
           debug(DEBUG_TRACE, "INPUT", "read %d bytes", nread);
-          //debug_bytes(DEBUG_TRACE, "INPUT", buf, nread);
           if (nread == len) {
             i = len - 8; // ignore struct timeval
             i += get2l(&type, buf, i);

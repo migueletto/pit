@@ -1,6 +1,6 @@
 include ../common.mak
 
-PROGRAM=$(LIB)/libfb.so
+PROGRAM=$(LIB)/libfb$(SOEXT)
 
 CUSTOMFLAGS=-I$(SRC)/font
 

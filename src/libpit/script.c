@@ -11,7 +11,7 @@
 #include "ptr.h"
 #include "thread.h"
 #include "mutex.h"
-#include "io.h"
+#include "pit_io.h"
 #include "sys.h"
 #include "sim.h"
 #include "timeutc.h"
